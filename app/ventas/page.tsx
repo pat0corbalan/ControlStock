@@ -49,16 +49,17 @@ const mapSale = (sale: any): Sale => ({
   id: sale.id,
   date: sale.created_at,
   customer: sale.customer || "Anónimo",
-  items: sale.sale_items.map((item: any) => ({
-    name: item.products.name,
+  items: (sale.sale_items || []).map((item: any) => ({
+    name: item.products?.name || "Sin nombre",
     quantity: item.quantity,
     price: item.unit_price,
   })),
-  subtotal: sale.sale_items.reduce((sum: number, item: any) => sum + item.subtotal, 0),
+  subtotal: (sale.sale_items || []).reduce((sum: number, item: any) => sum + item.subtotal, 0),
   total: sale.total,
   paymentMethod: mapPaymentMethod(sale.payment_method),
   status: mapStatus(sale.payment_status),
 })
+
 
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
@@ -116,23 +117,26 @@ export default function SalesPage() {
   }
 
   const handleUpdateSaleStatus = async (saleId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/sales/${saleId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payment_status: newStatus.toLowerCase() }),
-      })
-      if (!response.ok) {
-        const { error } = await response.json()
-        throw new Error(error || "Error al actualizar venta")
-      }
-      const updatedSale = await response.json()
-      setSales(sales.map((sale) => (sale.id === saleId ? mapSale(updatedSale) : sale)))
-      toast.success("Estado de venta actualizado")
-    } catch (error) {
-      toast.error((error as Error).message || "Error al actualizar venta")
+  try {
+    const response = await fetch(`/api/sales/${saleId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payment_status: newStatus.toLowerCase() }),
+    })
+    if (!response.ok) {
+      const { error } = await response.json()
+      throw new Error(error || "Error al actualizar venta")
     }
+    const updatedSale = await response.json()
+    setSales((prevSales) =>
+      prevSales.map((sale) => (sale.id === saleId ? mapSale(updatedSale) : sale))
+    )
+    toast.success("Estado de venta actualizado")
+  } catch (error) {
+    toast.error((error as Error).message || "Error al actualizar venta")
   }
+}
+
 
   const todaySales = sales.filter((sale) => {
     const saleDate = new Date(sale.date)
