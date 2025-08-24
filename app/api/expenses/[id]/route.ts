@@ -1,13 +1,19 @@
 import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+// ✅ Corregido el tipo de la función con destructuración de context
+export async function PUT(request: NextRequest, context: { params: { id: string } }) {
   try {
     const supabase = await createClient()
     const body = await request.json()
-    const { id } = params
+    const { id } = context.params // ✅ Accedé a `params` desde `context`
 
-    const { data: expense, error } = await supabase.from("expenses").update(body).eq("id", id).select().single()
+    const { data: expense, error } = await supabase
+      .from("expenses")
+      .update(body)
+      .eq("id", id)
+      .select()
+      .single()
 
     if (error) throw error
 
@@ -18,10 +24,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
     const supabase = await createClient()
-    const { id } = params
+    const { id } = context.params // ✅ Accedé a `params` desde `context`
 
     const { error } = await supabase.from("expenses").delete().eq("id", id)
 

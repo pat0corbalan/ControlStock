@@ -1,11 +1,16 @@
+// app/api/business-settings/route.ts
 import { createClient } from "@/lib/supabase/server"
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 export async function GET() {
   try {
     const supabase = await createClient()
 
-    const { data: settings, error } = await supabase.from("business_settings").select("*").limit(1).single()
+    const { data: settings, error } = await supabase
+      .from("business_settings")
+      .select("*")
+      .limit(1)
+      .single()
 
     if (error) throw error
 
@@ -21,14 +26,26 @@ export async function PUT(request: NextRequest) {
     const supabase = await createClient()
     const body = await request.json()
 
-    // Obtener el primer registro de configuración
-    const { data: existingSettings } = await supabase.from("business_settings").select("id").limit(1).single()
+    const { data: existingSettings } = await supabase
+      .from("business_settings")
+      .select("id")
+      .limit(1)
+      .single()
 
     if (existingSettings) {
-      // Actualizar configuración existente
       const { data: settings, error } = await supabase
         .from("business_settings")
-        .update(body)
+        .update({
+          business_name: body.business_name,
+          address: body.address,
+          phone: body.phone,
+          email: body.email,
+          tax_id: body.tax_id,
+          website: body.website,
+          description: body.description,
+          logo_url: body.logo_url,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", existingSettings.id)
         .select()
         .single()
@@ -36,8 +53,22 @@ export async function PUT(request: NextRequest) {
       if (error) throw error
       return NextResponse.json(settings)
     } else {
-      // Crear nueva configuración
-      const { data: settings, error } = await supabase.from("business_settings").insert([body]).select().single()
+      const { data: settings, error } = await supabase
+        .from("business_settings")
+        .insert([
+          {
+            business_name: body.business_name,
+            address: body.address,
+            phone: body.phone,
+            email: body.email,
+            tax_id: body.tax_id,
+            website: body.website,
+            description: body.description,
+            logo_url: body.logo_url,
+          },
+        ])
+        .select()
+        .single()
 
       if (error) throw error
       return NextResponse.json(settings)

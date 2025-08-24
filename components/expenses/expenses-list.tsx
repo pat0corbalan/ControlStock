@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,44 +13,44 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Edit, Trash2, Calendar, Tag } from "lucide-react"
+} from "@/components/ui/alert-dialog";
+import { Edit, Trash2, Calendar, Tag } from "lucide-react";
 
 interface Expense {
-  id: string
-  description: string
-  amount: number
-  date: string
-  category: string
+  id: string;
+  description: string;
+  amount: number;
+  expense_date: string;
+  category: string;
 }
 
 interface ExpensesListProps {
-  expenses: Expense[]
-  onEdit: (expense: Expense) => void
-  onDelete: (expenseId: string) => void
+  expenses: Expense[];
+  onEdit: (expense: Expense) => void;
+  onDelete: (expenseId: string) => void;
 }
 
 export function ExpensesList({ expenses, onEdit, onDelete }: ExpensesListProps) {
-  const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null)
+  const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null);
 
   const handleDelete = () => {
     if (deleteExpense) {
-      onDelete(deleteExpense.id)
-      setDeleteExpense(null)
+      onDelete(deleteExpense.id);
+      setDeleteExpense(null);
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return date.toLocaleDateString("es-ES", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    })
-  }
+    });
+  };
 
   const getCategoryColor = (category: string) => {
-    const colors = {
+    const colors: { [key: string]: string } = {
       Inventario: "bg-blue-100 text-blue-800",
       Servicios: "bg-green-100 text-green-800",
       Mantenimiento: "bg-yellow-100 text-yellow-800",
@@ -60,9 +60,9 @@ export function ExpensesList({ expenses, onEdit, onDelete }: ExpensesListProps) 
       Alquiler: "bg-red-100 text-red-800",
       Seguros: "bg-indigo-100 text-indigo-800",
       Otros: "bg-gray-100 text-gray-800",
-    }
-    return colors[category] || colors.Otros
-  }
+    };
+    return colors[category] || colors.Otros;
+  };
 
   if (expenses.length === 0) {
     return (
@@ -74,7 +74,7 @@ export function ExpensesList({ expenses, onEdit, onDelete }: ExpensesListProps) 
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -96,7 +96,7 @@ export function ExpensesList({ expenses, onEdit, onDelete }: ExpensesListProps) 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        <span>{formatDate(expense.date)}</span>
+                        <span>{formatDate(expense.expense_date)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Tag className="h-3 w-3" />
@@ -110,7 +110,7 @@ export function ExpensesList({ expenses, onEdit, onDelete }: ExpensesListProps) 
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="text-lg font-bold text-chart-2">${expense.amount.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">Gasto #{expense.id}</p>
+                      <p className="text-xs text-muted-foreground">Gasto #{expense.id.slice(-4)}</p>
                     </div>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => onEdit(expense)}>
@@ -148,5 +148,5 @@ export function ExpensesList({ expenses, onEdit, onDelete }: ExpensesListProps) 
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

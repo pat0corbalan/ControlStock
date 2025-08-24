@@ -1,56 +1,32 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Navigation } from "@/components/navigation"
-import { ExpenseForm } from "@/components/expenses/expense-form"
-import { ExpensesList } from "@/components/expenses/expenses-list"
-import { ExpensesChart } from "@/components/expenses/expenses-chart"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Plus, Receipt, TrendingUp, Calendar } from "lucide-react"
+import { useState, useEffect } from "react";
+import { Navigation } from "@/components/navigation";
+import { ExpenseForm } from "@/components/expenses/expense-form";
+import { ExpensesList } from "@/components/expenses/expenses-list";
+import { ExpensesChart } from "@/components/expenses/expenses-chart";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Receipt, TrendingUp, Calendar } from "lucide-react";
 
-// Datos de ejemplo para gastos
-const initialExpenses = [
-  {
-    id: "G001",
-    description: "Compra de mercancía",
-    amount: 450.0,
-    date: "2024-01-15",
-    category: "Inventario",
-  },
-  {
-    id: "G002",
-    description: "Pago de electricidad",
-    amount: 85.5,
-    date: "2024-01-14",
-    category: "Servicios",
-  },
-  {
-    id: "G003",
-    description: "Mantenimiento de equipos",
-    amount: 120.0,
-    date: "2024-01-13",
-    category: "Mantenimiento",
-  },
-  {
-    id: "G004",
-    description: "Material de oficina",
-    amount: 35.75,
-    date: "2024-01-12",
-    category: "Oficina",
-  },
-  {
-    id: "G005",
-    description: "Transporte de mercancía",
-    amount: 65.0,
-    date: "2024-01-11",
-    category: "Transporte",
-  },
-]
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  expense_date: string;
+  category: string;
+}
+
+interface ExpenseFormData {
+  description: string;
+  amount: number;
+  expense_date: string;
+  category: string;
+}
 
 const categories = [
   "Todas",
@@ -63,47 +39,107 @@ const categories = [
   "Alquiler",
   "Seguros",
   "Otros",
-]
+];
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState(initialExpenses)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingExpense, setEditingExpense] = useState(null)
-  const [selectedCategory, setSelectedCategory] = useState("Todas")
-  const [dateFilter, setDateFilter] = useState("")
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
+  const [dateFilter, setDateFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch expenses on mount
+  useEffect(() => {
+    async function fetchExpenses() {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/expenses");
+        if (!response.ok) throw new Error("Error al obtener gastos");
+        const data: Expense[] = await response.json();
+        setExpenses(data);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchExpenses();
+  }, []);
 
   const filteredExpenses = expenses.filter((expense) => {
-    const matchesCategory = selectedCategory === "Todas" || expense.category === selectedCategory
-    const matchesDate = !dateFilter || expense.date.includes(dateFilter)
-    return matchesCategory && matchesDate
-  })
+    const matchesCategory = selectedCategory === "Todas" || expense.category === selectedCategory;
+    const matchesDate = !dateFilter || expense.expense_date.includes(dateFilter);
+    return matchesCategory && matchesDate;
+  });
 
-  const handleAddExpense = (expenseData) => {
-    const newExpense = {
-      ...expenseData,
-      id: `G${String(expenses.length + 1).padStart(3, "0")}`,
+  const handleAddExpense = async (expenseData: ExpenseFormData) => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expenseData),
+      });
+      if (!response.ok) throw new Error("Error al crear gasto");
+      const newExpense: Expense = await response.json();
+      setExpenses([newExpense, ...expenses]);
+      setShowAddForm(false);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsSubmitting(false);
     }
-    setExpenses([newExpense, ...expenses])
-    setShowAddForm(false)
-  }
+  };
 
-  const handleEditExpense = (expenseData) => {
-    setExpenses(expenses.map((e) => (e.id === editingExpense.id ? { ...expenseData, id: editingExpense.id } : e)))
-    setEditingExpense(null)
-  }
+  const handleEditExpense = async (expenseData: ExpenseFormData) => {
+    if (!editingExpense) return;
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/expenses/${editingExpense.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expenseData),
+      });
+      if (!response.ok) throw new Error("Error al actualizar gasto");
+      const updatedExpense: Expense = await response.json();
+      setExpenses(expenses.map((e) => (e.id === editingExpense.id ? updatedExpense : e)));
+      setEditingExpense(null);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  const handleDeleteExpense = (expenseId) => {
-    setExpenses(expenses.filter((e) => e.id !== expenseId))
-  }
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/expenses/${expenseId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Error al eliminar gasto");
+      setExpenses(expenses.filter((e) => e.id !== expenseId));
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Cálculos para el resumen
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const thisMonthExpenses = expenses.filter((expense) => {
-    const expenseDate = new Date(expense.date)
-    const now = new Date()
-    return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()
-  })
-  const monthlyTotal = thisMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+    const expenseDate = new Date(expense.expense_date);
+    const now = new Date();
+    return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear();
+  });
+  const monthlyTotal = thisMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   const expensesByCategory = categories
     .filter((cat) => cat !== "Todas")
@@ -112,12 +148,14 @@ export default function ExpensesPage() {
       amount: expenses.filter((e) => e.category === category).reduce((sum, e) => sum + e.amount, 0),
     }))
     .filter((item) => item.amount > 0)
-    .sort((a, b) => b.amount - a.amount)
+    .sort((a, b) => b.amount - a.amount);
+
+  if (loading) return <div>Cargando gastos...</div>;
+  if (error && !expenses.length) return <div>Error: {error}</div>;
 
   return (
     <div className="flex min-h-screen bg-background">
       <Navigation />
-
       <main className="flex-1 md:ml-64">
         <div className="p-6">
           <div className="mb-6">
@@ -164,7 +202,7 @@ export default function ExpensesPage() {
 
             <Card>
               <CardContent className="flex items-center justify-center p-6">
-                <Button onClick={() => setShowAddForm(true)} className="w-full">
+                <Button onClick={() => setShowAddForm(true)} className="w-full" disabled={isSubmitting}>
                   <Plus className="h-4 w-4 mr-2" />
                   Nuevo Gasto
                 </Button>
@@ -210,8 +248,8 @@ export default function ExpensesPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setSelectedCategory("Todas")
-                      setDateFilter("")
+                      setSelectedCategory("Todas");
+                      setDateFilter("");
                     }}
                     className="w-full bg-transparent"
                   >
@@ -240,7 +278,12 @@ export default function ExpensesPage() {
               <DialogHeader>
                 <DialogTitle>Agregar Nuevo Gasto</DialogTitle>
               </DialogHeader>
-              <ExpenseForm onSubmit={handleAddExpense} onCancel={() => setShowAddForm(false)} />
+              <ExpenseForm
+                onSubmit={handleAddExpense}
+                onCancel={() => setShowAddForm(false)}
+                error={error}
+                isSubmitting={isSubmitting}
+              />
             </DialogContent>
           </Dialog>
 
@@ -255,6 +298,8 @@ export default function ExpensesPage() {
                   initialData={editingExpense}
                   onSubmit={handleEditExpense}
                   onCancel={() => setEditingExpense(null)}
+                  error={error}
+                  isSubmitting={isSubmitting}
                 />
               )}
             </DialogContent>
@@ -262,5 +307,5 @@ export default function ExpensesPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

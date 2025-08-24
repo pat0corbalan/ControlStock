@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 interface ExpensesChartProps {
-  data: Array<{ category: string; amount: number }>
+  data: Array<{ category: string; amount: number }>;
 }
 
 const COLORS = [
@@ -18,13 +18,18 @@ const COLORS = [
   "#82ca9d",
   "#ffc658",
   "#ff7300",
-]
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#0088FE",
+  "#00C4B4",
+];
 
 const chartConfig = {
   amount: {
     label: "Monto",
   },
-}
+};
 
 export function ExpensesChart({ data }: ExpensesChartProps) {
   if (data.length === 0) {
@@ -37,13 +42,13 @@ export function ExpensesChart({ data }: ExpensesChartProps) {
           <p className="text-muted-foreground">No hay datos para mostrar</p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   const chartData = data.map((item, index) => ({
     ...item,
     fill: COLORS[index % COLORS.length],
-  }))
+  }));
 
   return (
     <Card>
@@ -59,7 +64,7 @@ export function ExpensesChart({ data }: ExpensesChartProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+                label={({ category, percent = 0 }) => `${category} ${(percent * 100).toFixed(0)}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="amount"
@@ -89,5 +94,5 @@ export function ExpensesChart({ data }: ExpensesChartProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

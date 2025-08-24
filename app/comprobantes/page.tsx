@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { ReceiptsList } from "@/components/receipts/receipts-list"
 import { BusinessSettings } from "@/components/receipts/business-settings"
@@ -11,57 +11,51 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Receipt, Settings, Search, FileText } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
-// Datos de ejemplo para comprobantes (en una app real vendría de la base de datos)
-const initialReceipts = [
-  {
-    id: "V001",
-    date: "2024-01-15T10:30:00",
-    customer: "María González",
-    items: [
-      { name: "Café Premium 500g", quantity: 2, price: 12.99 },
-      { name: "Azúcar Blanca 1kg", quantity: 1, price: 2.5 },
-    ],
-    subtotal: 28.48,
-    total: 28.48,
-    paymentMethod: "Efectivo",
-    status: "Pagado",
-    type: "Venta",
-  },
-  {
-    id: "V002",
-    date: "2024-01-15T14:15:00",
-    customer: "Carlos Rodríguez",
-    items: [
-      { name: "Aceite de Oliva 500ml", quantity: 1, price: 9.99 },
-      { name: "Arroz Integral 1kg", quantity: 3, price: 3.75 },
-    ],
-    subtotal: 21.24,
-    total: 21.24,
-    paymentMethod: "A pagar",
-    status: "Pendiente",
-    type: "Venta",
-  },
-  {
-    id: "V003",
-    date: "2024-01-15T16:45:00",
-    customer: "Ana López",
-    items: [{ name: "Leche Entera 1L", quantity: 4, price: 2.99 }],
-    subtotal: 11.96,
-    total: 11.96,
-    paymentMethod: "Tarjeta de crédito",
-    status: "Pagado",
-    type: "Venta",
-  },
-]
+interface Receipt {
+  id: string
+  date: string
+  customer: string
+  items: { name: string; quantity: number; price: number }[]
+  subtotal: number
+  total: number
+  paymentMethod: string
+  status: string
+  type: string
+}
 
 export default function ReceiptsPage() {
-  const [receipts, setReceipts] = useState(initialReceipts)
-  const [selectedReceipt, setSelectedReceipt] = useState(null)
+  const [receipts, setReceipts] = useState<Receipt[]>([])
+  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("Todos")
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
+
+  // Fetch receipts on mount
+  useEffect(() => {
+    const fetchReceipts = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch("/api/receipts")
+        if (!response.ok) throw new Error("Failed to fetch receipts")
+        const data = await response.json()
+        setReceipts(data)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo cargar los comprobantes.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchReceipts()
+  }, [toast])
 
   const filteredReceipts = receipts.filter((receipt) => {
     const matchesSearch =
@@ -72,8 +66,8 @@ export default function ReceiptsPage() {
   })
 
   const totalReceipts = receipts.length
-  const paidReceipts = receipts.filter((r) => r.status === "Pagado").length
-  const pendingReceipts = receipts.filter((r) => r.status === "Pendiente").length
+  const paidReceipts = receipts.filter((r) => r.status === "pagado").length
+  const pendingReceipts = receipts.filter((r) => r.status === "pendiente").length
   const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.total, 0)
 
   return (
@@ -146,16 +140,17 @@ export default function ReceiptsPage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
+                    disabled={loading}
                   />
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={setStatusFilter} disabled={loading}>
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="Filtrar por estado" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Todos">Todos</SelectItem>
-                    <SelectItem value="Pagado">Pagado</SelectItem>
-                    <SelectItem value="Pendiente">Pendiente</SelectItem>
+                    <SelectItem value="pagado">Pagado</SelectItem>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -163,13 +158,17 @@ export default function ReceiptsPage() {
           </Card>
 
           {/* Lista de comprobantes */}
-          <ReceiptsList
-            receipts={filteredReceipts}
-            onViewReceipt={(receipt) => {
-              setSelectedReceipt(receipt)
-              setShowReceipt(true)
-            }}
-          />
+          {loading ? (
+            <p>Cargando comprobantes...</p>
+          ) : (
+            <ReceiptsList
+              receipts={filteredReceipts}
+              onViewReceipt={(receipt) => {
+                setSelectedReceipt(receipt)
+                setShowReceipt(true)
+              }}
+            />
+          )}
 
           {/* Modal de comprobante mejorado */}
           <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
