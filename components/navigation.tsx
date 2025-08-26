@@ -9,6 +9,7 @@ import { LayoutDashboard, Package, ShoppingCart, Receipt, FileText, Menu, Store 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Productos", href: "/productos", icon: Package },
+  { name: "Clientes", href: "/clientes", icon: Package },
   { name: "Ventas", href: "/ventas", icon: ShoppingCart },
   { name: "Gastos", href: "/gastos", icon: Receipt },
   { name: "Comprobantes", href: "/comprobantes", icon: FileText },

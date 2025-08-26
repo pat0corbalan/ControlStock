@@ -9,6 +9,7 @@ export async function GET() {
       .from("sales")
       .select(`
         *,
+        customer:customers (id, name),
         sale_items (
           *,
           products (name, sku)
@@ -25,12 +26,18 @@ export async function GET() {
   }
 }
 
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { items, payment_method, total } = await request.json()
+    const { items, payment_method, total, customer_id } = await request.json()
 
-    // Crear la venta
+    // Validación básica
+    if (!customer_id) {
+      return NextResponse.json({ error: "Falta el ID del cliente" }, { status: 400 })
+    }
+
+    // Crear la venta con el cliente
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert([
@@ -38,6 +45,7 @@ export async function POST(request: NextRequest) {
           total,
           payment_method,
           payment_status: payment_method === "a_pagar" ? "pendiente" : "pagado",
+          customer_id, // ✅ Asociar cliente aquí
         },
       ])
       .select()
@@ -68,7 +76,11 @@ export async function POST(request: NextRequest) {
 
       if (stockError) {
         // Si no existe la función, actualizar manualmente
-        const { data: product } = await supabase.from("products").select("stock").eq("id", item.product_id).single()
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock")
+          .eq("id", item.product_id)
+          .single()
 
         if (product) {
           await supabase

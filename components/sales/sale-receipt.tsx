@@ -7,13 +7,17 @@ import { Store, Calendar, User, CreditCard, Printer } from "lucide-react"
 interface Sale {
   id: string
   date: string
-  customer: string
+  customer?: {
+    id: string
+    name: string
+  }
   items: Array<{ name: string; quantity: number; price: number }>
   subtotal: number
   total: number
   paymentMethod: string
   status: string
 }
+
 
 interface SaleReceiptProps {
   sale: Sale
@@ -59,7 +63,7 @@ export function SaleReceipt({ sale, onClose }: SaleReceiptProps) {
         <div className="flex items-center gap-2 text-sm">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">Cliente:</span>
-          <span>{sale.customer}</span>
+          <span>{sale.customer?.name ?? "Desconocido"}</span>
         </div>
 
         <div className="flex items-center gap-2 text-sm">

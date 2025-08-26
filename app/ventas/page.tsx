@@ -89,32 +89,35 @@ export default function SalesPage() {
   }, [])
 
   const handleNewSale = async (saleData: any) => {
-    try {
-      const response = await fetch("/api/sales", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: saleData.items,
-          payment_method: saleData.paymentMethod.toLowerCase().replace(" ", "_"),
-          total: saleData.total,
-          customer: saleData.customer,
-        }),
-      })
-      if (!response.ok) {
-        const { error } = await response.json()
-        throw new Error(error || "Error al crear venta")
-      }
-      const completeSale = await response.json()
-      const newSale = mapSale(completeSale)
-      setSales([newSale, ...sales])
-      setSelectedSale(newSale)
-      setShowNewSaleForm(false)
-      setShowReceipt(true)
-      toast.success("Venta creada correctamente")
-    } catch (error) {
-      toast.error((error as Error).message || "Error al crear venta")
+  try {
+    const response = await fetch("/api/sales", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: saleData.items,
+        payment_method: saleData.paymentMethod.toLowerCase().replace(" ", "_"),
+        total: saleData.total,
+        customer_id: saleData.customer?.id ?? null, // ✅ integración del cliente
+      }),
+    })
+
+    if (!response.ok) {
+      const { error } = await response.json()
+      throw new Error(error || "Error al crear venta")
     }
+
+    const completeSale = await response.json()
+    const newSale = mapSale(completeSale)
+    setSales([newSale, ...sales])
+    setSelectedSale(newSale)
+    setShowNewSaleForm(false)
+    setShowReceipt(true)
+    toast.success("Venta creada correctamente")
+  } catch (error) {
+    toast.error((error as Error).message || "Error al crear venta")
   }
+}
+
 
   const handleUpdateSaleStatus = async (saleId: string, newStatus: string) => {
   try {

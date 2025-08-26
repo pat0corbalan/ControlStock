@@ -10,20 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Receipt, Settings, Search, FileText } from "lucide-react"
+import { Receipt as ReceiptIcon, Settings, Search, FileText } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { Receipt } from "@/components/types/receipt"
 
-interface Receipt {
-  id: string
-  date: string
-  customer: string
-  items: { name: string; quantity: number; price: number }[]
-  subtotal: number
-  total: number
-  paymentMethod: string
-  status: string
-  type: string
+
+interface ReceiptsListProps {
+  receipts: Receipt[]
+  onViewReceipt: (receipt: Receipt) => void
 }
+
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
@@ -97,7 +93,7 @@ export default function ReceiptsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pagados</CardTitle>
-                <Receipt className="h-4 w-4 text-chart-1" />
+                <ReceiptIcon className="h-4 w-4 text-chart-1" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-chart-1">{paidReceipts}</div>
@@ -108,7 +104,7 @@ export default function ReceiptsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
-                <Receipt className="h-4 w-4 text-chart-2" />
+                <ReceiptIcon className="h-4 w-4 text-chart-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-chart-2">{pendingReceipts}</div>

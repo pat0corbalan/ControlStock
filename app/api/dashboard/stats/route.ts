@@ -15,7 +15,11 @@ export async function GET() {
 
     if (salesError) throw salesError
 
-    const dailySales = todaySales?.reduce((sum, sale) => sum + Number.parseFloat(sale.total.toString()), 0) || 0
+    const dailySales =
+      todaySales?.reduce(
+        (sum, sale) => sum + Number.parseFloat(sale.total.toString()),
+        0
+      ) || 0
 
     // Pagos pendientes
     const { data: pendingPayments, error: pendingError } = await supabase
@@ -25,40 +29,65 @@ export async function GET() {
 
     if (pendingError) throw pendingError
 
-    const totalPending = pendingPayments?.reduce((sum, sale) => sum + Number.parseFloat(sale.total.toString()), 0) || 0
+    const totalPending =
+      pendingPayments?.reduce(
+        (sum, sale) => sum + Number.parseFloat(sale.total.toString()),
+        0
+      ) || 0
 
-    // Gastos del mes
-    const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
+    // Gastos del mes (usando fecha válida)
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth() // 0-indexed
+
+    const startOfMonth = new Date(year, month, 1)
+      .toISOString()
+      .split("T")[0]
+    const startOfNextMonth = new Date(year, month + 1, 1)
+      .toISOString()
+      .split("T")[0]
+
     const { data: monthlyExpenses, error: expensesError } = await supabase
       .from("expenses")
       .select("amount")
-      .gte("expense_date", `${currentMonth}-01`)
-      .lt("expense_date", `${currentMonth}-32`)
+      .gte("expense_date", `${startOfMonth}T00:00:00`)
+      .lt("expense_date", `${startOfNextMonth}T00:00:00`)
 
     if (expensesError) throw expensesError
 
     const monthlyExpensesTotal =
-      monthlyExpenses?.reduce((sum, expense) => sum + Number.parseFloat(expense.amount.toString()), 0) || 0
+      monthlyExpenses?.reduce(
+        (sum, expense) =>
+          sum + Number.parseFloat(expense.amount.toString()),
+        0
+      ) || 0
 
-    // Productos con stock bajo
-    const { data: lowStockProducts, error: stockError } = await supabase
+    // Productos con stock bajo - trae todos y filtra en JS
+    const { data: allProducts, error: productsError } = await supabase
       .from("products")
       .select("*")
-      .filter("stock", "lte", "min_stock")
 
-    if (stockError) throw stockError
+    if (productsError) throw productsError
+
+    const lowStockProducts =
+      allProducts?.filter(
+        (product) => product.stock <= product.min_stock
+      ) || []
 
     const stats = {
       dailySales,
       pendingPayments: totalPending,
       monthlyExpenses: monthlyExpensesTotal,
-      lowStockCount: lowStockProducts?.length || 0,
-      lowStockProducts: lowStockProducts || [],
+      lowStockCount: lowStockProducts.length,
+      lowStockProducts: lowStockProducts,
     }
 
     return NextResponse.json(stats)
   } catch (error) {
     console.error("Error fetching dashboard stats:", error)
-    return NextResponse.json({ error: "Error al obtener estadísticas" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Error al obtener estadísticas" },
+      { status: 500 }
+    )
   }
 }

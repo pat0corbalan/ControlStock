@@ -28,6 +28,11 @@ interface CartItem extends Product {
   quantity: number
 }
 
+interface Customer {
+  id: string
+  name: string
+}
+
 const paymentMethods = [
   { value: "efectivo", label: "Efectivo" },
   { value: "tarjeta", label: "Tarjeta de crédito" },
@@ -36,7 +41,8 @@ const paymentMethods = [
 ]
 
 export function NewSaleForm({ onSubmit, onCancel }: NewSaleFormProps) {
-  const [customer, setCustomer] = useState("")
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [selectedProductId, setSelectedProductId] = useState("")
@@ -65,7 +71,19 @@ export function NewSaleForm({ onSubmit, onCancel }: NewSaleFormProps) {
       }
     }
 
+    const fetchCustomers = async () => {
+      try {
+        const res = await fetch("/api/customers")
+        if (!res.ok) throw new Error("Error al obtener clientes")
+        const data = await res.json()
+        setCustomers(data)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
     fetchProducts()
+    fetchCustomers()
   }, [])
 
   const addToCart = () => {
@@ -115,7 +133,7 @@ export function NewSaleForm({ onSubmit, onCancel }: NewSaleFormProps) {
     }
 
     const saleData = {
-      customer: customer || "Cliente General",
+      customer: customer || { id: "", name: "Cliente General" },
       items: cart.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
@@ -140,13 +158,31 @@ export function NewSaleForm({ onSubmit, onCancel }: NewSaleFormProps) {
             <CardTitle className="text-lg">Cliente</CardTitle>
           </CardHeader>
           <CardContent>
-            <Label htmlFor="customer">Nombre (opcional)</Label>
-            <Input
-              id="customer"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              placeholder="Cliente General"
-            />
+            <Label htmlFor="customer">Seleccionar cliente</Label>
+            <Select
+  value={customer?.id || "general"}  // default "general" si no hay cliente seleccionado
+  onValueChange={(value) => {
+    if (value === "general") {
+      setCustomer(null);
+    } else {
+      const selected = customers.find((c) => c.id === value) || null;
+      setCustomer(selected);
+    }
+  }}
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Cliente General" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="general">Cliente General</SelectItem> {/* valor no vacío */}
+    {customers.map((c) => (
+      <SelectItem key={c.id} value={c.id}>
+        {c.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
           </CardContent>
         </Card>
 

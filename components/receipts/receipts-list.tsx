@@ -4,17 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Eye, Printer } from "lucide-react"
-
-interface Receipt {
-  id: string
-  date: string
-  customer: string
-  items: Array<{ name: string; quantity: number; price: number }>
-  total: number
-  paymentMethod: string
-  status: string
-  type: string
-}
+import { Receipt } from "@/components/types/receipt"
 
 interface ReceiptsListProps {
   receipts: Receipt[]

@@ -9,13 +9,14 @@ import { Eye, CheckCircle } from "lucide-react"
 interface Sale {
   id: string
   date: string
-  customer: string
+  customer?: { id: string; name: string } // 👈
   items: Array<{ name: string; quantity: number; price: number }>
   subtotal: number
   total: number
   paymentMethod: string
   status: string
 }
+
 
 interface SalesListProps {
   sales: Sale[]
@@ -65,8 +66,9 @@ export function SalesList({ sales, onViewReceipt, onUpdateStatus }: SalesListPro
                       {getStatusBadge(sale.status)}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Cliente: {sale.customer} • {formatDate(sale.date)}
+                      Cliente: {sale.customer?.name ?? "Desconocido"} • {formatDate(sale.date)}
                     </p>
+
                     <p className="text-sm text-muted-foreground">
                       {sale.items.length} producto(s) • {sale.paymentMethod}
                     </p>

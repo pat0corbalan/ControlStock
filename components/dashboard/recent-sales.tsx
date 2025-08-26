@@ -1,66 +1,119 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
-const recentSales = [
-  {
-    id: "001",
-    customer: "María González",
-    amount: "$125.00",
-    status: "Pagado",
-    time: "Hace 2 horas",
-  },
-  {
-    id: "002",
-    customer: "Carlos Rodríguez",
-    amount: "$89.50",
-    status: "Pendiente",
-    time: "Hace 4 horas",
-  },
-  {
-    id: "003",
-    customer: "Ana López",
-    amount: "$234.00",
-    status: "Pagado",
-    time: "Hace 6 horas",
-  },
-  {
-    id: "004",
-    customer: "Luis Martín",
-    amount: "$67.25",
-    status: "Contra entrega",
-    time: "Hace 1 día",
-  },
-]
+interface SaleItem {
+  quantity: number
+  unit_price: number
+  products: {
+    name: string
+    sku: string
+  }
+}
+
+interface Sale {
+  id: string
+  customer?: {
+    id: string
+    name: string
+  } | null
+  total: number
+  payment_method: string
+  payment_status: string
+  created_at: string
+  sale_items: SaleItem[]
+}
+
+
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+  const intervals = [
+    { label: "año", seconds: 31536000 },
+    { label: "mes", seconds: 2592000 },
+    { label: "día", seconds: 86400 },
+    { label: "hora", seconds: 3600 },
+    { label: "minuto", seconds: 60 },
+  ]
+
+  for (const i of intervals) {
+    const value = Math.floor(seconds / i.seconds)
+    if (value >= 1) return `Hace ${value} ${i.label}${value > 1 ? "s" : ""}`
+  }
+
+  return "Hace unos segundos"
+}
 
 export function RecentSales() {
+  const [sales, setSales] = useState<Sale[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchSales() {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/sales/")
+        if (!res.ok) throw new Error("Error al cargar ventas")
+        const data: Sale[] = await res.json()
+
+        const filtered = data
+          .filter((sale) => sale.sale_items && sale.sale_items.length > 0)
+          .slice(0, 5)
+
+        setSales(filtered)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error desconocido")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSales()
+  }, [])
+
   return (
     <Card className="col-span-3">
       <CardHeader>
         <CardTitle>Ventas Recientes</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {recentSales.map((sale) => (
-            <div key={sale.id} className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">{sale.customer}</p>
-                <p className="text-sm text-muted-foreground">
-                  Venta #{sale.id} • {sale.time}
-                </p>
+        {loading && <p className="text-sm text-muted-foreground">Cargando ventas...</p>}
+        {error && <p className="text-sm text-red-500">Error: {error}</p>}
+        {!loading && !error && (
+          <div className="space-y-4">
+            {sales.map((sale, index) => (
+              <div key={sale.id} className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {sale.customer?.name?.trim() || "Cliente Anónimo"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Venta #{String(index + 1).padStart(3, "0")} • {getTimeAgo(sale.created_at)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      sale.payment_status.toLowerCase() === "pagado"
+                        ? "default"
+                        : sale.payment_status.toLowerCase() === "pendiente"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                  >
+                    {sale.payment_status}
+                  </Badge>
+                  <div className="text-sm font-medium">${sale.total.toFixed(2)}</div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={
-                    sale.status === "Pagado" ? "default" : sale.status === "Pendiente" ? "destructive" : "secondary"
-                  }
-                >
-                  {sale.status}
-                </Badge>
-                <div className="text-sm font-medium">{sale.amount}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
