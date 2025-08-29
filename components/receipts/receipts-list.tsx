@@ -24,10 +24,11 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Pagado":
+    const normalized = status.toLowerCase()
+    switch (normalized) {
+      case "pagado":
         return <Badge variant="default">Pagado</Badge>
-      case "Pendiente":
+      case "pendiente":
         return <Badge variant="destructive">Pendiente</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
@@ -35,7 +36,6 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
   }
 
   const handleQuickPrint = (receipt: Receipt) => {
-    // Crear una ventana temporal para imprimir
     const printWindow = window.open("", "_blank")
     if (printWindow) {
       printWindow.document.write(`
@@ -84,7 +84,7 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
                       <td>$${item.price.toFixed(2)}</td>
                       <td>$${(item.quantity * item.price).toFixed(2)}</td>
                     </tr>
-                  `,
+                  `
                     )
                     .join("")}
                 </tbody>
@@ -163,7 +163,8 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
                   <strong>Productos:</strong>{" "}
                   {receipt.items.map((item, index) => (
                     <span key={index}>
-                      {item.name} (x{item.quantity}){index < receipt.items.length - 1 ? ", " : ""}
+                      {item.name} (x{item.quantity})
+                      {index < receipt.items.length - 1 ? ", " : ""}
                     </span>
                   ))}
                 </div>

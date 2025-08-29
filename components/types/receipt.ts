@@ -1,12 +1,20 @@
-// types/receipt.ts
+// components/types/receipt.ts
+export interface ReceiptItem {
+  name: string;
+  quantity: number;
+  price: number;
+  subtotal: number;  // agregar esta propiedad
+}
+
+
 export interface Receipt {
   id: string
   date: string
   customer: string
-  items: { name: string; quantity: number; price: number }[]
-  subtotal: number
-  total: number
   paymentMethod: string
-  status: string
+  total: number
   type: string
+  status: string
+  items: ReceiptItem[]
+  subtotal: number;
 }

@@ -3,17 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Store, Calendar, User, CreditCard, Printer, Download, Mail } from "lucide-react"
-
-interface Receipt {
-  id: string
-  date: string
-  customer: string
-  items: Array<{ name: string; quantity: number; price: number }>
-  subtotal: number
-  total: number
-  paymentMethod: string
-  status: string
-}
+import { Receipt } from "@/components/types/receipt" // Importa tu tipo Receipt real
 
 interface EnhancedReceiptProps {
   receipt: Receipt
@@ -37,12 +27,10 @@ export function EnhancedReceipt({ receipt, onClose }: EnhancedReceiptProps) {
   }
 
   const handleDownload = () => {
-    // Simular descarga de PDF
     alert("Funcionalidad de descarga en desarrollo")
   }
 
   const handleEmail = () => {
-    // Simular envío por email
     alert("Funcionalidad de envío por email en desarrollo")
   }
 

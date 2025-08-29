@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const saleId = params.id
+
+    // Extraer el ID desde la URL
+    const url = new URL(request.url)
+    const segments = url.pathname.split("/")
+    const saleId = segments[segments.length - 1]
 
     // Traer la venta con el cliente
     const { data: sale, error: saleError } = await supabase

@@ -13,13 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Receipt as ReceiptIcon, Settings, Search, FileText } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Receipt } from "@/components/types/receipt"
-
-
-interface ReceiptsListProps {
-  receipts: Receipt[]
-  onViewReceipt: (receipt: Receipt) => void
-}
-
+import { adaptReceipt } from "@/lib/adaptReceipts"
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
@@ -31,7 +25,7 @@ export default function ReceiptsPage() {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  // Fetch receipts on mount
+  
   useEffect(() => {
     const fetchReceipts = async () => {
       try {
@@ -39,7 +33,8 @@ export default function ReceiptsPage() {
         const response = await fetch("/api/receipts")
         if (!response.ok) throw new Error("Failed to fetch receipts")
         const data = await response.json()
-        setReceipts(data)
+        const adapted = data.map(adaptReceipt)
+        setReceipts(adapted)
       } catch (error) {
         toast({
           title: "Error",
