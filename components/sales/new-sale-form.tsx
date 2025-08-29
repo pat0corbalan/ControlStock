@@ -133,7 +133,7 @@ export function NewSaleForm({ onSubmit, onCancel }: NewSaleFormProps) {
     }
 
     const saleData = {
-      customer: customer || { id: "", name: "Cliente General" },
+      customer: customer ? { id: customer.id, name: customer.name } : null,
       items: cart.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,

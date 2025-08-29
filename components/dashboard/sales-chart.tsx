@@ -33,6 +33,8 @@ export function SalesChart() {
         const res = await fetch("/api/dashboard/stats/")
         if (!res.ok) throw new Error("No se pudieron cargar las estadísticas")
         const result = await res.json()
+
+        console.log("Datos reales del backend:", result)
         setData(result)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido")

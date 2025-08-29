@@ -26,18 +26,15 @@ export async function GET() {
   }
 }
 
-
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { items, payment_method, total, customer_id } = await request.json()
 
-    // Validación básica
-    if (!customer_id) {
-      return NextResponse.json({ error: "Falta el ID del cliente" }, { status: 400 })
-    }
+    // Permitir ventas sin cliente (anónimo)
+    const safeCustomerId = customer_id || null
 
-    // Crear la venta con el cliente
+    // Crear la venta
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert([
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
           total,
           payment_method,
           payment_status: payment_method === "a_pagar" ? "pendiente" : "pagado",
-          customer_id, // ✅ Asociar cliente aquí
+          customer_id: safeCustomerId, // puede ser null
         },
       ])
       .select()
@@ -68,14 +65,14 @@ export async function POST(request: NextRequest) {
 
       if (itemError) throw itemError
 
-      // Actualizar stock del producto
+      // Actualizar stock del producto (primero intenta con RPC)
       const { error: stockError } = await supabase.rpc("update_product_stock", {
         product_id: item.product_id,
         quantity_sold: item.quantity,
       })
 
       if (stockError) {
-        // Si no existe la función, actualizar manualmente
+        // Si falla la función RPC, actualizar stock manualmente
         const { data: product } = await supabase
           .from("products")
           .select("stock")
@@ -96,6 +93,7 @@ export async function POST(request: NextRequest) {
       .from("sales")
       .select(`
         *,
+        customer:customers (id, name),
         sale_items (
           *,
           products (name, sku)

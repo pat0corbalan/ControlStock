@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Store, Calendar, User, CreditCard, Printer } from "lucide-react"
@@ -18,6 +19,16 @@ interface Sale {
   status: string
 }
 
+interface BusinessSettings {
+  business_name: string
+  address: string
+  phone: string
+  email: string
+  tax_id: string
+  logo_url?: string
+  website?: string
+  description: string
+}
 
 interface SaleReceiptProps {
   sale: Sale
@@ -25,6 +36,24 @@ interface SaleReceiptProps {
 }
 
 export function SaleReceipt({ sale, onClose }: SaleReceiptProps) {
+  const [business, setBusiness] = useState<BusinessSettings | null>(null)
+
+  useEffect(() => {
+    const fetchBusinessSettings = async () => {
+      try {
+        const res = await fetch("/api/business-settings")
+        if (!res.ok) throw new Error("Error al obtener configuración del negocio")
+        const data = await res.json()
+        setBusiness(data)
+      } catch (error) {
+        console.error(error)
+        alert("No se pudo cargar la información del negocio")
+      }
+    }
+
+    fetchBusinessSettings()
+  }, [])
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("es-ES", {
@@ -43,13 +72,32 @@ export function SaleReceipt({ sale, onClose }: SaleReceiptProps) {
   return (
     <div className="space-y-4">
       {/* Encabezado del negocio */}
-      <div className="text-center space-y-2 pb-4 border-b">
-        <div className="flex items-center justify-center gap-2">
-          <Store className="h-6 w-6 text-primary" />
-          <h2 className="text-xl font-bold">Mi Negocio</h2>
+      <div className="text-center pb-4 border-b">
+        <div className="flex flex-col items-center justify-center gap-0 p-0 m-0">
+          {business?.logo_url?.trim() ? (
+            <img
+              src={business.logo_url}
+              alt="Logo del negocio"
+              className="h-40 w-40 object-cover rounded-lg m-0 p-0 block"
+            />
+          ) : (
+            <Store className="h-12 w-12 text-primary m-0 p-0" />
+          )}
+          <h2 className="text-2xl font-extrabold m-0 p-0 mt-2">
+            {business?.business_name || "Nombre del Negocio"}
+          </h2>
         </div>
-        <p className="text-sm text-muted-foreground">Sistema de Gestión de Ventas</p>
-        <p className="text-xs text-muted-foreground">Tel: (555) 123-4567</p>
+
+        <p className="text-sm text-muted-foreground m-0 p-0 mt-2">
+          {business?.description || "Sistema de Gestión de Ventas"}
+        </p>
+        {business && (
+          <p className="text-xs text-muted-foreground m-0 p-0 mt-1">
+            {business.address && <>Dirección: {business.address}<br /></>}
+            {business.phone && <>Tel: {business.phone} </>}
+            {business.email && <>| Email: {business.email}</>}
+          </p>
+        )}
       </div>
 
       {/* Información de la venta */}
@@ -63,7 +111,7 @@ export function SaleReceipt({ sale, onClose }: SaleReceiptProps) {
         <div className="flex items-center gap-2 text-sm">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">Cliente:</span>
-          <span>{sale.customer?.name ?? "Desconocido"}</span>
+          <span>{sale.customer?.name ?? "Cliente General"}</span>
         </div>
 
         <div className="flex items-center gap-2 text-sm">
@@ -116,7 +164,7 @@ export function SaleReceipt({ sale, onClose }: SaleReceiptProps) {
         <p className="text-xs text-muted-foreground">¡Gracias por su compra!</p>
       </div>
 
-      {/* Botones de acción */}
+      {/* Botones */}
       <div className="flex gap-2 pt-4">
         <Button variant="outline" onClick={handlePrint} className="flex-1 bg-transparent">
           <Printer className="h-4 w-4 mr-2" />
