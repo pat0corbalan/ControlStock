@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, CreditCard, Receipt, AlertTriangle } from "lucide-react";
+import { DollarSign, CreditCard, Receipt, TrendingUp } from "lucide-react";
 
 interface StatsData {
   dailySales: number;
   pendingPayments: number;
   monthlyExpenses: number;
-  lowStockCount: number;
+  netProfit: number;
 }
 
 interface StatCardProps {
@@ -45,47 +45,71 @@ export function StatsCards() {
         setLoading(true);
         setError(null);
 
-        // Fetch sales
-        const salesRes = await fetch("/api/sales/");
+        const [salesRes, expensesRes, productsRes] = await Promise.all([
+          fetch("/api/sales/"),
+          fetch("/api/expenses/"),
+          fetch("/api/products/"),
+        ]);
+
         if (!salesRes.ok) throw new Error("No se pudieron cargar las ventas");
-        const salesData = await salesRes.json();
-
-        // Fetch expenses
-        const expensesRes = await fetch("/api/expenses/");
         if (!expensesRes.ok) throw new Error("No se pudieron cargar los gastos");
-        const expensesData = await expensesRes.json();
-
-        // Fetch low stock products
-        const productsRes = await fetch("/api/products/");
         if (!productsRes.ok) throw new Error("No se pudieron cargar los productos");
-        const productsData = await productsRes.json();
 
-        const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-        const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+        const [salesData, expensesData, productsData] = await Promise.all([
+          salesRes.json(),
+          expensesRes.json(),
+          productsRes.json(),
+        ]);
 
-        // Ventas del día: sumamos ventas con created_at igual a hoy y pagado
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const today = new Date().toISOString().slice(0, 10);
+
+        // Ventas del día
         const dailySales = salesData
           .filter((sale: any) => sale.created_at?.slice(0, 10) === today && sale.payment_status === "pagado")
           .reduce((acc: number, sale: any) => acc + Number(sale.total || 0), 0);
 
-        // Pagos pendientes: sumamos ventas con payment_status diferente a pagado (ej: "pendiente", "a_pagar", etc)
+        // Pagos pendientes
         const pendingPayments = salesData
           .filter((sale: any) => sale.payment_status !== "pagado")
           .reduce((acc: number, sale: any) => acc + Number(sale.total || 0), 0);
 
-        // Gastos del mes: sumamos gastos con created_at dentro del mes actual
+        // Gastos del mes
         const monthlyExpenses = expensesData
           .filter((expense: any) => expense.created_at?.slice(0, 7) === currentMonth)
           .reduce((acc: number, expense: any) => acc + Number(expense.amount || 0), 0);
 
-        // Stock bajo: contamos productos con stock menor a cierto umbral, ej: 5
-        const lowStockCount = productsData.filter((product: any) => product.stock !== undefined && product.stock < 5).length;
+        // Ganancia neta = Ventas pagadas - Costos - Gastos
+        const paidSales = salesData.filter((sale: any) => sale.payment_status === "pagado");
+
+        // Crear un mapa para acceder rápido al unit_cost por product_id
+        const productCostMap: Record<string, number> = {};
+        for (const product of productsData) {
+          if (product.id && product.unit_cost !== undefined) {
+            productCostMap[product.id] = Number(product.unit_cost);
+          }
+        }
+
+        // Sumar el costo de productos vendidos en las ventas pagadas
+        const totalCosts = paidSales.reduce((acc: number, sale: any) => {
+          if (!Array.isArray(sale.products)) return acc;
+
+          const costOfSale = sale.products.reduce((saleAcc: number, item: any) => {
+            const unitCost = productCostMap[item.product_id] || 0;
+            return saleAcc + unitCost * (item.quantity || 0);
+          }, 0);
+
+          return acc + costOfSale;
+        }, 0);
+
+        const totalSales = paidSales.reduce((acc: number, sale: any) => acc + Number(sale.total || 0), 0);
+        const netProfit = totalSales - totalCosts - monthlyExpenses;
 
         setStats({
           dailySales,
           pendingPayments,
           monthlyExpenses,
-          lowStockCount,
+          netProfit,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
@@ -93,6 +117,7 @@ export function StatsCards() {
         setLoading(false);
       }
     }
+
     fetchStats();
   }, []);
 
@@ -126,11 +151,11 @@ export function StatsCards() {
       colorClass: "text-chart-3",
     },
     {
-      title: "Stock Bajo",
-      value: stats.lowStockCount.toString(),
-      description: "Productos por reponer",
-      Icon: AlertTriangle,
-      colorClass: "text-chart-2",
+      title: "Ganancia Neta",
+      value: formatCurrency(stats.netProfit),
+      description: "Ventas - Costos - Gastos",
+      Icon: TrendingUp,
+      colorClass: "text-green-600",
     },
   ];
 

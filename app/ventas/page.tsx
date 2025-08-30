@@ -1,4 +1,3 @@
-// app/ventas/page.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -13,6 +12,7 @@ import { Plus, Receipt } from "lucide-react"
 import { Toaster } from "react-hot-toast"
 import toast from "react-hot-toast"
 import { Sale } from "@/components/types/sale"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const mapStatus = (status: string) => status.charAt(0).toUpperCase() + status.slice(1)
 
@@ -33,14 +33,8 @@ const mapSale = (sale: any): Sale => ({
   id: sale.id,
   date: sale.created_at,
   customer: sale.customer
-    ? {
-        id: sale.customer.id,
-        name: sale.customer.name,
-      }
-    : {
-        id: "anonimo", // puedes usar "anonimo" o "0000", lo que prefieras
-        name: "Anónimo",
-      },
+    ? { id: sale.customer.id, name: sale.customer.name }
+    : { id: "anonimo", name: "Anónimo" },
   items: (sale.sale_items || []).map((item: any) => ({
     name: item.products?.name || "Sin nombre",
     quantity: item.quantity,
@@ -51,11 +45,11 @@ const mapSale = (sale: any): Sale => ({
   paymentMethod: mapPaymentMethod(sale.payment_method),
   status: mapStatus(sale.payment_status),
 })
- 
-
 
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
+  const [filteredSales, setFilteredSales] = useState<Sale[]>([])
+  const [statusFilter, setStatusFilter] = useState("Todos")
   const [showNewSaleForm, setShowNewSaleForm] = useState(false)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
@@ -67,7 +61,9 @@ export default function SalesPage() {
       const response = await fetch("/api/sales")
       if (!response.ok) throw new Error("Error al obtener ventas")
       const data = await response.json()
-      setSales(data.map(mapSale))
+      const mapped = data.map(mapSale)
+      setSales(mapped)
+      setFilteredSales(mapped)
     } catch (error) {
       toast.error((error as Error).message || "Error al cargar las ventas")
     } finally {
@@ -78,6 +74,14 @@ export default function SalesPage() {
   useEffect(() => {
     fetchSales()
   }, [])
+
+  useEffect(() => {
+    let filtered = sales
+    if (statusFilter !== "Todos") {
+      filtered = sales.filter((sale) => sale.status === statusFilter)
+    }
+    setFilteredSales(filtered)
+  }, [statusFilter, sales])
 
   const handleNewSale = async (saleData: any) => {
     try {
@@ -192,8 +196,19 @@ export default function SalesPage() {
                 </Card>
               </div>
 
+              {/* Filtro por estado */}
+              <div className="flex justify-between items-center mb-4">
+                <Tabs defaultValue={statusFilter} onValueChange={(val) => setStatusFilter(val)}>
+                  <TabsList>
+                    <TabsTrigger value="Todos">Todos</TabsTrigger>
+                    <TabsTrigger value="Pagado">Pagados</TabsTrigger>
+                    <TabsTrigger value="Pendiente">Pendientes</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
               <SalesList
-                sales={sales}
+                sales={filteredSales}
                 onViewReceipt={(sale) => {
                   setSelectedSale(sale)
                   setShowReceipt(true)
@@ -203,6 +218,7 @@ export default function SalesPage() {
             </>
           )}
 
+          {/* Formulario nueva venta */}
           <Dialog open={showNewSaleForm} onOpenChange={setShowNewSaleForm}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -212,6 +228,7 @@ export default function SalesPage() {
             </DialogContent>
           </Dialog>
 
+          {/* Comprobante de venta */}
           <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
             <DialogContent className="max-w-md">
               <DialogHeader>

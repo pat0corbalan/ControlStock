@@ -1,32 +1,31 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, type FormEvent } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
 interface ExpenseFormData {
-  description: string;
-  amount: number;
-  expense_date: string;
-  category: string;
+  description: string
+  amount: string
+  expense_date: string
+  category: string
 }
 
 interface ExpenseFormProps {
-  initialData?: ExpenseFormData;
-  onSubmit: (data: ExpenseFormData) => void;
-  onCancel: () => void;
-  error?: string | null;
-  isSubmitting?: boolean;
+  initialData?: ExpenseFormData
+  onSubmit: (data: ExpenseFormData) => void
+  onCancel: () => void
+  error?: string | null
+  isSubmitting?: boolean
 }
 
 const categories = [
@@ -39,7 +38,7 @@ const categories = [
   "Alquiler",
   "Seguros",
   "Otros",
-];
+]
 
 export function ExpenseForm({
   initialData,
@@ -51,62 +50,69 @@ export function ExpenseForm({
   const [formData, setFormData] = useState<ExpenseFormData>(
     initialData || {
       description: "",
-      amount: 0,
+      amount: "",
       expense_date: new Date().toISOString().split("T")[0],
       category: "",
     }
-  );
+  )
 
-  const [errors, setErrors] = useState<Partial<ExpenseFormData>>({});
+  const [errors, setErrors] = useState<Partial<ExpenseFormData>>({})
 
   const handleChange = (field: keyof ExpenseFormData, value: string) => {
-    let updatedValue: string | number = value;
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
 
-    if (field === "amount") {
-      updatedValue = value === "" ? 0 : Number.parseFloat(value) || 0;
-    }
-
-    setFormData((prev) => ({ ...prev, [field]: updatedValue }));
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
-  };
-
+  }
 
   const validateForm = () => {
-    const newErrors: Partial<ExpenseFormData> = {};
+    const newErrors: Partial<ExpenseFormData> = {}
 
-    if (!formData.description.trim())
-      newErrors.description = "La descripción es requerida";
-    if (formData.amount <= 0)
-      newErrors.amount = "El monto debe ser mayor a 0";
-    if (!formData.expense_date)
-      newErrors.expense_date = "La fecha es requerida";
-    if (!formData.category)
-      newErrors.category = "La categoría es requerida";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
+    if (!formData.description.trim()) {
+      newErrors.description = "La descripción es requerida"
     }
-  };
+
+    // Convertimos amount a número para validarlo
+    const amountNum = parseFloat(formData.amount)
+    if (formData.amount.trim() === "" || isNaN(amountNum) || amountNum <= 0) {
+      newErrors.amount = "El monto debe ser mayor a 0"
+    }
+
+    if (!formData.expense_date) {
+      newErrors.expense_date = "La fecha es requerida"
+    }
+
+    if (!formData.category) {
+      newErrors.category = "La categoría es requerida"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    if (validateForm()) {
+      onSubmit(formData)
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      {/* Descripción */}
       <div className="space-y-2">
         <Label htmlFor="description">Descripción *</Label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => handleChange("description", e.target.value)}
-          placeholder="Ej: Pago de electricidad, Compra de mercancía..."
+          placeholder="Ej: Compra de repuestos, servicio de electricidad..."
           className={errors.description ? "border-destructive" : ""}
           rows={3}
         />
@@ -115,6 +121,7 @@ export function ExpenseForm({
         )}
       </div>
 
+      {/* Monto */}
       <div className="space-y-2">
         <Label htmlFor="amount">Monto * ($)</Label>
         <Input
@@ -122,11 +129,7 @@ export function ExpenseForm({
           type="number"
           min="0"
           step="0.01"
-          value={
-            Number.isNaN(formData.amount) || formData.amount === 0
-              ? ""
-              : formData.amount
-          }
+          value={formData.amount}
           onChange={(e) => handleChange("amount", e.target.value)}
           placeholder="0.00"
           className={errors.amount ? "border-destructive" : ""}
@@ -136,10 +139,11 @@ export function ExpenseForm({
         )}
       </div>
 
+      {/* Fecha */}
       <div className="space-y-2">
-        <Label htmlFor="date">Fecha *</Label>
+        <Label htmlFor="expense_date">Fecha *</Label>
         <Input
-          id="date"
+          id="expense_date"
           type="date"
           value={formData.expense_date}
           onChange={(e) => handleChange("expense_date", e.target.value)}
@@ -150,15 +154,14 @@ export function ExpenseForm({
         )}
       </div>
 
+      {/* Categoría */}
       <div className="space-y-2">
         <Label htmlFor="category">Categoría *</Label>
         <Select
           value={formData.category}
           onValueChange={(value) => handleChange("category", value)}
         >
-          <SelectTrigger
-            className={errors.category ? "border-destructive" : ""}
-          >
+          <SelectTrigger className={errors.category ? "border-destructive" : ""}>
             <SelectValue placeholder="Seleccionar categoría" />
           </SelectTrigger>
           <SelectContent>
@@ -174,12 +177,13 @@ export function ExpenseForm({
         )}
       </div>
 
+      {/* Botones */}
       <div className="flex gap-3 pt-4">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
-          className="flex-1 bg-transparent"
+          className="flex-1"
           disabled={isSubmitting}
         >
           Cancelar
@@ -193,5 +197,5 @@ export function ExpenseForm({
         </Button>
       </div>
     </form>
-  );
+  )
 }

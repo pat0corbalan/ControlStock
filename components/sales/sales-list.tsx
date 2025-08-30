@@ -1,14 +1,11 @@
-// components/sales/sales-list.tsx
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Eye, CheckCircle } from "lucide-react"
 import { Sale } from "../types/sale"
-
-
-
 
 interface SalesListProps {
   sales: Sale[]
@@ -16,7 +13,12 @@ interface SalesListProps {
   onUpdateStatus: (saleId: string, newStatus: string) => void
 }
 
+const PAGE_SIZE = 5 // Cantidad de ventas por página
+
 export function SalesList({ sales, onViewReceipt, onUpdateStatus }: SalesListProps) {
+  const [currentPage, setCurrentPage] = useState(1)
+  const totalPages = Math.ceil(sales.length / PAGE_SIZE)
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("es-ES", {
@@ -29,15 +31,23 @@ export function SalesList({ sales, onViewReceipt, onUpdateStatus }: SalesListPro
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Pagado":
+    switch (status.toLowerCase()) {
+      case "pagado":
         return <Badge variant="default">Pagado</Badge>
-      case "Pendiente":
+      case "pendiente":
         return <Badge variant="destructive">Pendiente</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
   }
+
+  const paginatedSales = sales.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1))
+  const handleNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages))
 
   return (
     <Card>
@@ -49,7 +59,7 @@ export function SalesList({ sales, onViewReceipt, onUpdateStatus }: SalesListPro
           <p className="text-muted-foreground text-center py-8">No hay ventas registradas</p>
         ) : (
           <div className="space-y-4">
-            {sales.map((sale) => (
+            {paginatedSales.map((sale) => (
               <div key={sale.id} className="border rounded-lg p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-2">
@@ -60,23 +70,29 @@ export function SalesList({ sales, onViewReceipt, onUpdateStatus }: SalesListPro
                     <p className="text-sm text-muted-foreground">
                       Cliente: {sale.customer?.name ?? "Desconocido"} • {formatDate(sale.date)}
                     </p>
-
                     <p className="text-sm text-muted-foreground">
                       {sale.items.length} producto(s) • {sale.paymentMethod}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="text-lg font-bold">${sale.total.toFixed(2)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => onViewReceipt(sale)}>
+                      <Button variant="outline" size="sm" onClick={() => onViewReceipt(sale)} title="Ver comprobante">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {sale.status === "Pendiente" && (
-                        <Button variant="outline" size="sm" onClick={() => onUpdateStatus(sale.id, "Pagado")}>
+                      {sale.status.toLowerCase() === "pendiente" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => onUpdateStatus(sale.id, "Pagado")}
+                          title="Marcar como pagado"
+                          className="flex items-center gap-1"
+                        >
                           <CheckCircle className="h-4 w-4" />
+                          Pagar
                         </Button>
                       )}
                     </div>
@@ -95,6 +111,19 @@ export function SalesList({ sales, onViewReceipt, onUpdateStatus }: SalesListPro
                 </div>
               </div>
             ))}
+
+            {/* Paginación */}
+            <div className="flex justify-end items-center gap-4 pt-2">
+              <Button onClick={handlePrevPage} disabled={currentPage === 1}>
+                &larr; Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button onClick={handleNextPage} disabled={currentPage === totalPages}>
+                Siguiente &rarr;
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

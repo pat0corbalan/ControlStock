@@ -1,9 +1,10 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Printer } from "lucide-react"
+import { Eye, Printer, ChevronLeft, ChevronRight } from "lucide-react"
 import { Receipt } from "@/components/types/receipt"
 
 interface ReceiptsListProps {
@@ -11,7 +12,18 @@ interface ReceiptsListProps {
   onViewReceipt: (receipt: Receipt) => void
 }
 
+const ITEMS_PER_PAGE = 5
+
 export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const totalPages = Math.ceil(receipts.length / ITEMS_PER_PAGE)
+
+  const currentReceipts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return receipts.slice(start, start + ITEMS_PER_PAGE)
+  }, [currentPage, receipts])
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("es-ES", {
@@ -126,7 +138,7 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {receipts.map((receipt) => (
+          {currentReceipts.map((receipt) => (
             <div key={receipt.id} className="border rounded-lg p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-2">
@@ -148,10 +160,10 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
                     <p className="text-xs text-muted-foreground">{receipt.type}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => onViewReceipt(receipt)}>
+                    <Button variant="outline" size="sm" onClick={() => onViewReceipt(receipt)} aria-label={`Ver comprobante ${receipt.id}`}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleQuickPrint(receipt)}>
+                    <Button variant="outline" size="sm" onClick={() => handleQuickPrint(receipt)} aria-label={`Imprimir comprobante ${receipt.id}`}>
                       <Printer className="h-4 w-4" />
                     </Button>
                   </div>
@@ -171,6 +183,31 @@ export function ReceiptsList({ receipts, onViewReceipt }: ReceiptsListProps) {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {currentPage} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            aria-label="Página siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
