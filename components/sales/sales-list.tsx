@@ -5,17 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Eye, CheckCircle } from "lucide-react"
+import { Sale } from "../types/sale"
 
-interface Sale {
-  id: string
-  date: string
-  customer?: { id: string; name: string } // 👈
-  items: Array<{ name: string; quantity: number; price: number }>
-  subtotal: number
-  total: number
-  paymentMethod: string
-  status: string
-}
+
 
 
 interface SalesListProps {

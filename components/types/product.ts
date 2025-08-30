@@ -3,5 +3,5 @@ interface Product {
   name: string;
   sku: string;
   category: string;
-  [key: string]: any; // opcional, si hay más campos
+  [key: string]: any; 
 }

@@ -3,7 +3,7 @@ export interface ReceiptItem {
   name: string;
   quantity: number;
   price: number;
-  subtotal: number;  // agregar esta propiedad
+  subtotal: number;
 }
 
 

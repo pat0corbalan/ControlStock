@@ -8,7 +8,7 @@ import { Store, Calendar, User, CreditCard, Printer } from "lucide-react"
 interface Sale {
   id: string
   date: string
-  customer?: {
+  customer: {
     id: string
     name: string
   }

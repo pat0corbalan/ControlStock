@@ -12,23 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Receipt } from "lucide-react"
 import { Toaster } from "react-hot-toast"
 import toast from "react-hot-toast"
-
-interface SaleItem {
-  name: string
-  quantity: number
-  price: number
-}
-
-interface Sale {
-  id: string
-  date: string
-  customer: string
-  items: SaleItem[]
-  subtotal: number
-  total: number
-  paymentMethod: string
-  status: string
-}
+import { Sale } from "@/components/types/sale"
 
 const mapStatus = (status: string) => status.charAt(0).toUpperCase() + status.slice(1)
 
@@ -48,7 +32,15 @@ const mapPaymentMethod = (method: string) => {
 const mapSale = (sale: any): Sale => ({
   id: sale.id,
   date: sale.created_at,
-  customer: sale.customer || "Anónimo",
+  customer: sale.customer
+    ? {
+        id: sale.customer.id,
+        name: sale.customer.name,
+      }
+    : {
+        id: "anonimo", // puedes usar "anonimo" o "0000", lo que prefieras
+        name: "Anónimo",
+      },
   items: (sale.sale_items || []).map((item: any) => ({
     name: item.products?.name || "Sin nombre",
     quantity: item.quantity,
@@ -59,6 +51,7 @@ const mapSale = (sale: any): Sale => ({
   paymentMethod: mapPaymentMethod(sale.payment_method),
   status: mapStatus(sale.payment_status),
 })
+ 
 
 
 export default function SalesPage() {
@@ -72,9 +65,7 @@ export default function SalesPage() {
     setIsLoading(true)
     try {
       const response = await fetch("/api/sales")
-      if (!response.ok) {
-        throw new Error("Error al obtener ventas")
-      }
+      if (!response.ok) throw new Error("Error al obtener ventas")
       const data = await response.json()
       setSales(data.map(mapSale))
     } catch (error) {
@@ -89,57 +80,55 @@ export default function SalesPage() {
   }, [])
 
   const handleNewSale = async (saleData: any) => {
-  try {
-    const response = await fetch("/api/sales", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: saleData.items,
-        payment_method: saleData.paymentMethod.toLowerCase().replace(" ", "_"),
-        total: saleData.total,
-        customer_id: saleData.customer?.id ?? null, // ✅ integración del cliente
-      }),
-    })
+    try {
+      const response = await fetch("/api/sales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: saleData.items,
+          payment_method: saleData.paymentMethod.toLowerCase().replace(" ", "_"),
+          total: saleData.total,
+          customer_id: saleData.customer?.id ?? null,
+        }),
+      })
 
-    if (!response.ok) {
-      const { error } = await response.json()
-      throw new Error(error || "Error al crear venta")
+      if (!response.ok) {
+        const { error } = await response.json()
+        throw new Error(error || "Error al crear venta")
+      }
+
+      const completeSale = await response.json()
+      const newSale = mapSale(completeSale)
+      setSales((prev) => [newSale, ...prev])
+      setSelectedSale(newSale)
+      setShowNewSaleForm(false)
+      setShowReceipt(true)
+      toast.success("Venta creada correctamente")
+    } catch (error) {
+      toast.error((error as Error).message || "Error al crear venta")
     }
-
-    const completeSale = await response.json()
-    const newSale = mapSale(completeSale)
-    setSales([newSale, ...sales])
-    setSelectedSale(newSale)
-    setShowNewSaleForm(false)
-    setShowReceipt(true)
-    toast.success("Venta creada correctamente")
-  } catch (error) {
-    toast.error((error as Error).message || "Error al crear venta")
   }
-}
-
 
   const handleUpdateSaleStatus = async (saleId: string, newStatus: string) => {
-  try {
-    const response = await fetch(`/api/sales/${saleId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ payment_status: newStatus.toLowerCase() }),
-    })
-    if (!response.ok) {
-      const { error } = await response.json()
-      throw new Error(error || "Error al actualizar venta")
+    try {
+      const response = await fetch(`/api/sales/${saleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_status: newStatus.toLowerCase() }),
+      })
+      if (!response.ok) {
+        const { error } = await response.json()
+        throw new Error(error || "Error al actualizar venta")
+      }
+      const updatedSale = await response.json()
+      setSales((prevSales) =>
+        prevSales.map((sale) => (sale.id === saleId ? mapSale(updatedSale) : sale))
+      )
+      toast.success("Estado de venta actualizado")
+    } catch (error) {
+      toast.error((error as Error).message || "Error al actualizar venta")
     }
-    const updatedSale = await response.json()
-    setSales((prevSales) =>
-      prevSales.map((sale) => (sale.id === saleId ? mapSale(updatedSale) : sale))
-    )
-    toast.success("Estado de venta actualizado")
-  } catch (error) {
-    toast.error((error as Error).message || "Error al actualizar venta")
   }
-}
-
 
   const todaySales = sales.filter((sale) => {
     const saleDate = new Date(sale.date)
@@ -148,7 +137,9 @@ export default function SalesPage() {
   })
 
   const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0)
-  const pendingPayments = sales.filter((sale) => sale.status === "Pendiente").reduce((sum, sale) => sum + sale.total, 0)
+  const pendingPayments = sales
+    .filter((sale) => sale.status === "Pendiente")
+    .reduce((sum, sale) => sum + sale.total, 0)
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -166,7 +157,6 @@ export default function SalesPage() {
             <p className="text-center">Cargando ventas...</p>
           ) : (
             <>
-              {/* Resumen del día */}
               <div className="grid gap-4 md:grid-cols-3 mb-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -202,7 +192,6 @@ export default function SalesPage() {
                 </Card>
               </div>
 
-              {/* Lista de ventas */}
               <SalesList
                 sales={sales}
                 onViewReceipt={(sale) => {
@@ -214,7 +203,6 @@ export default function SalesPage() {
             </>
           )}
 
-          {/* Modal de nueva venta */}
           <Dialog open={showNewSaleForm} onOpenChange={setShowNewSaleForm}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -224,7 +212,6 @@ export default function SalesPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Modal de comprobante */}
           <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
             <DialogContent className="max-w-md">
               <DialogHeader>

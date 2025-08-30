@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { ReceiptsList } from "@/components/receipts/receipts-list"
 import { BusinessSettings } from "@/components/receipts/business-settings"
-import { EnhancedReceipt } from "@/components/receipts/enhanced-receipt"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -14,6 +13,8 @@ import { Receipt as ReceiptIcon, Settings, Search, FileText } from "lucide-react
 import { useToast } from "@/components/ui/use-toast"
 import { Receipt } from "@/components/types/receipt"
 import { adaptReceipt } from "@/lib/adaptReceipts"
+import { SaleReceipt } from "@/components/sales/sale-receipt"
+import { Sale } from "@/components/types/sale"
 
 export default function ReceiptsPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([])
@@ -25,7 +26,6 @@ export default function ReceiptsPage() {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
-  
   useEffect(() => {
     const fetchReceipts = async () => {
       try {
@@ -59,7 +59,22 @@ export default function ReceiptsPage() {
   const totalReceipts = receipts.length
   const paidReceipts = receipts.filter((r) => r.status === "pagado").length
   const pendingReceipts = receipts.filter((r) => r.status === "pendiente").length
-  const totalAmount = receipts.reduce((sum, receipt) => sum + receipt.total, 0)
+
+  // Convierte Receipt a Sale con todas las propiedades necesarias para SaleReceipt
+  const convertReceiptToSale = (receipt: Receipt): Sale => {
+    return {
+      id: receipt.id,
+      date: receipt.date,
+      total: receipt.total,
+      status: receipt.status,
+      customer: receipt.customer
+        ? { id: receipt.customer, name: receipt.customer }
+        : { id: "anonymous", name: "Cliente Anónimo" },
+      items: receipt.items || [], // Asegúrate que Receipt tenga items, o define aquí
+      subtotal: receipt.subtotal || 0,
+      paymentMethod: receipt.paymentMethod || "Efectivo",
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -167,7 +182,12 @@ export default function ReceiptsPage() {
               <DialogHeader>
                 <DialogTitle>Comprobante de Venta</DialogTitle>
               </DialogHeader>
-              {selectedReceipt && <EnhancedReceipt receipt={selectedReceipt} onClose={() => setShowReceipt(false)} />}
+              {selectedReceipt && (
+                <SaleReceipt
+                  sale={convertReceiptToSale(selectedReceipt)}
+                  onClose={() => setShowReceipt(false)}
+                />
+              )}
             </DialogContent>
           </Dialog>
 
