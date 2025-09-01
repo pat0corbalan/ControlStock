@@ -4,7 +4,15 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, Package, ShoppingCart, Receipt, FileText, Menu, Store } from "lucide-react"
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Receipt,
+  FileText,
+  Menu,
+  Store,
+} from "lucide-react"
 
 interface BusinessSettings {
   id: string
@@ -52,7 +60,7 @@ export function Navigation() {
     fetchSettings()
   }, [])
 
-  const businessName = businessSettings?.business_name || "Mi Negocio"
+  const businessName = businessSettings?.business_name || "GTienda"
   const logoUrl = businessSettings?.logo_url || ""
 
   return (
@@ -69,13 +77,9 @@ export function Navigation() {
           ) : (
             <Store className="h-8 w-8 text-sidebar-primary" />
           )}
-          {loading ? (
-            <h1 className="text-xl font-bold text-sidebar-foreground">Cargando...</h1>
-          ) : error ? (
-            <h1 className="text-xl font-bold text-red-600">{error}</h1>
-          ) : (
-            <h1 className="text-xl font-bold text-sidebar-foreground">{businessName}</h1>
-          )}
+          <h1 className="text-xl font-bold text-sidebar-foreground">
+            {loading ? "Cargando..." : businessName}
+          </h1>
         </div>
         <div className="flex-1 p-4">
           <ul className="space-y-2">
@@ -107,13 +111,9 @@ export function Navigation() {
             ) : (
               <Store className="h-6 w-6 text-primary" />
             )}
-            {loading ? (
-              <h1 className="text-lg font-bold">Cargando...</h1>
-            ) : error ? (
-              <h1 className="text-lg font-bold text-red-600">{error}</h1>
-            ) : (
-              <h1 className="text-lg font-bold">{businessName}</h1>
-            )}
+            <h1 className="text-lg font-bold">
+              {loading ? "Cargando..." : businessName}
+            </h1>
           </div>
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
